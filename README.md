@@ -16,7 +16,7 @@ Modern, ölçeklenebilir ve güvenli bir sosyal platform altyapısı. Bu proje, 
 Proje, yazılım mühendisliği yaşam döngüsüne uygun olarak aşağıdaki 13 haftalık sprintlere bölünerek geliştirilmektedir:
 
 * **1. Hafta (13 Mart - 19 Mart):** Proje gereksinim analizi, mikroservis mimari tasarım kararlarının alınması ve veritabanı şemalarının teorik planlaması.
-* **2. Hafta (20 Mart - 26 Mart):** Geliştirme ortamının kurulması, .NET 10 ve PostgreSQL entegrasyonu, AuthService iskeletinin ayağa kaldırılması. *(Şu an buradayız)*
+* **2. Hafta (20 Mart - 26 Mart):** Geliştirme ortamının kurulması, .NET 10 ve PostgreSQL entegrasyonu, AuthService iskeletinin ayağa kaldırılması. 
 * **3. Hafta (27 Mart - 2 Nisan):** Entity Framework Core migration işlemlerinin yapılması, Kullanıcı (User) modellerinin oluşturulması ve Register (Kayıt) uç noktasının BCrypt şifreleme ile tamamlanması.
 * **4. Hafta (3 Nisan - 9 Nisan):** JWT (JSON Web Token) altyapısının sisteme entegre edilmesi ve Login (Giriş) doğrulama servislerinin yazılması.
 * **5. Hafta (10 Nisan - 16 Nisan):** API Gateway (API Geçidi) araştırmalarının yapılması ve mikroservisler için temel yönlendirme (routing) konfigürasyonlarının hazırlanması.
