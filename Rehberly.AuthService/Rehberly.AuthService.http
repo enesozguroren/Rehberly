@@ -1,0 +1,6 @@
+@Rehberly.AuthService_HostAddress = http://localhost:5229
+
+GET {{Rehberly.AuthService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
