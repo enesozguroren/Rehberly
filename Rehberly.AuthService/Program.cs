@@ -4,8 +4,21 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Rehberly.AuthService.Data;
 using System.Text;
+using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddMassTransit(x =>
+{
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        // Docker'daki rabbitmq servisimize bağlanıyoruz
+        cfg.Host("rabbitmq", "/", h => {
+            h.Username("guest");
+            h.Password("guest");
+        });
+    });
+});
 
 // 1. Veritabanı Bağlantısı
 builder.Services.AddDbContext<AppDbContext>(options =>

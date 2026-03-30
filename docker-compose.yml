@@ -1,0 +1,84 @@
+services:
+  # 1. Postane (Mesajlaşma Kuyruğu)
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rehberly-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+
+  # 2. Veritabanı (PostgreSQL)
+  postgres:
+    image: postgres:16  # <-- BURAYI DEĞİŞTİRDİK (latest yerine 16 yaptık)
+    container_name: rehberly-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: enes
+      POSTGRES_DB: RehberlyDb
+    ports:
+      - "5433:5432" # SADECE BURAYI DEĞİŞTİRDİK (Dış portu 5433 yaptık)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  # 3. Güvenlik Şefi
+  auth-service:
+    build:
+      context: .
+      dockerfile: Rehberly.AuthService/Dockerfile
+    container_name: rehberly-auth
+    ports:
+      - "5229:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - rabbitmq
+      - postgres
+
+  # 4. Profil ve Unvan Yöneticisi
+  profile-service:
+    build:
+      context: .
+      dockerfile: Rehberly.ProfileService/Dockerfile
+    container_name: rehberly-profile
+    ports:
+      - "5068:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - rabbitmq
+      - postgres
+
+  # 5. Ana Beyin
+  route-service:
+    build:
+      context: .
+      dockerfile: Rehberly.RouteService/Dockerfile
+    container_name: rehberly-route
+    ports:
+      - "5190:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - rabbitmq
+      - postgres
+
+  # 6. Resepsiyonist (Gateway)
+  gateway:
+    build:
+      context: .
+      dockerfile: Rehberly.Gateway/Dockerfile
+    container_name: rehberly-gateway
+    ports:
+      - "5082:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - auth-service
+      - profile-service
+      - route-service
+
+# Veritabanı verilerinin Docker kapanıp açıldığında silinmemesi için kalıcı bir hafıza alanı (Volume) oluşturuyoruz.
+volumes:
+  postgres_data:

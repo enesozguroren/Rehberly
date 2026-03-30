@@ -7,6 +7,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using MassTransit;
+using Rehberly.Shared.Messages;
 
 namespace Rehberly.AuthService.Controllers
 {
@@ -16,11 +18,14 @@ namespace Rehberly.AuthService.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IPublishEndpoint _publishEndpoint; // 1. Telsizi tanımladık
 
-        public AuthController(AppDbContext context, IConfiguration configuration)
+        // 2. Telsizi içeriye (Constructor'a) aldık
+        public AuthController(AppDbContext context, IConfiguration configuration, IPublishEndpoint publishEndpoint)
         {
             _context = context;
             _configuration = configuration;
+            _publishEndpoint = publishEndpoint;
         }
 
         [HttpPost("register")]
@@ -42,6 +47,15 @@ namespace Rehberly.AuthService.Controllers
 
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
+
+            // 3. Mesajı TAM BURADA, veritabanına kayıt başarılı olduktan hemen sonra fırlatıyoruz!
+            // 'user' yerine 'newUser' objesindeki verileri aldık.
+            await _publishEndpoint.Publish(new UserCreatedEvent
+            {
+                UserId = newUser.Id, 
+                Username = newUser.Username,
+                Email = newUser.Email
+            });
 
             return Ok(new { message = "Kullanıcı başarıyla oluşturuldu!" });
         }
@@ -99,7 +113,5 @@ namespace Rehberly.AuthService.Controllers
                 message = $"VIP odaya hoş geldin, {userName}! Token'ın başarıyla doğrulandı." 
             });
         }
-
-
     }
 }

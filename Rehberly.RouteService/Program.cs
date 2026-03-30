@@ -2,44 +2,37 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Rehberly.ProfileService.Data;
+using Rehberly.RouteService.Data;
 using System.Text;
 using MassTransit;
-using Rehberly.ProfileService.Consumers;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Veritabanı Bağlantısı
-builder.Services.AddDbContext<ProfileDbContext>(options =>
+builder.Services.AddDbContext<RouteDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// MassTransit & RabbitMQ Ayarları (Alıcı Modu)
+// MassTransit & RabbitMQ Ayarları
 builder.Services.AddMassTransit(x =>
 {
-    // Kulağımızı (Consumer) sisteme tanıtıyoruz
-    x.AddConsumer<UserCreatedEventConsumer>();
-
     x.UsingRabbitMq((context, cfg) =>
     {
+        // "localhost" yerine konteynerın adını ("rabbitmq") yazıyoruz
         cfg.Host("rabbitmq", "/", h => {
             h.Username("guest");
             h.Password("guest");
         });
-
-        // Hangi kuyruğu dinleyeceğini söylüyoruz
-        cfg.ReceiveEndpoint("profile-user-created-queue", e =>
-        {
-            e.ConfigureConsumer<UserCreatedEventConsumer>(context);
-        });
     });
 });
+
 // 2. Swagger'a Kilit Butonu Ekleme
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Rehberly Profile API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Rehberly Route API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Token'ınızı buraya girin. Örnek: Bearer {token}",
@@ -82,7 +75,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// 4. Kimlik Doğrulamayı Aktif Et
+// 4. Güvenliği Aktif Et
 app.UseAuthentication();
 app.UseAuthorization();
 
