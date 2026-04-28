@@ -8,6 +8,7 @@ using MassTransit;
 using Rehberly.ProfileService.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
+const string MobileClientCorsPolicy = "MobileClient";
 
 // 1. Veritabanı Bağlantısı
 builder.Services.AddDbContext<ProfileDbContext>(options =>
@@ -15,27 +16,48 @@ builder.Services.AddDbContext<ProfileDbContext>(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(MobileClientCorsPolicy, policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
+// MassTransit & RabbitMQ Ayarları (Alıcı Modu)
 // MassTransit & RabbitMQ Ayarları (Alıcı Modu)
 builder.Services.AddMassTransit(x =>
 {
-    // Kulağımızı (Consumer) sisteme tanıtıyoruz
+    // 1. KULAK: Yeni kayıtları dinler
     x.AddConsumer<UserCreatedEventConsumer>();
+    
+    // 2. KULAK: Rota kaydedilmelerini dinler (İŞTE BUNU UNUTMUŞTUK!)
+    x.AddConsumer<RouteSavedEventConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {
-        cfg.Host("rabbitmq", "/", h => {
+        var rabbitMqHost = builder.Configuration["RabbitMq:Host"] ?? "rabbitmq";
+        cfg.Host(rabbitMqHost, "/", h => {
             h.Username("guest");
             h.Password("guest");
         });
 
-        // Hangi kuyruğu dinleyeceğini söylüyoruz
+        // 1. KUYRUK (Yeni Kullanıcılar)
         cfg.ReceiveEndpoint("profile-user-created-queue", e =>
         {
             e.ConfigureConsumer<UserCreatedEventConsumer>(context);
         });
+
+        // 2. KUYRUK (Rota Kaydedenler)
+        cfg.ReceiveEndpoint("profile-route-saved-queue", e =>
+        {
+            e.ConfigureConsumer<RouteSavedEventConsumer>(context);
+        });
     });
 });
+
 // 2. Swagger'a Kilit Butonu Ekleme
 builder.Services.AddSwaggerGen(c =>
 {
@@ -76,6 +98,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
+// --- OTOMATİK VERİTABANI GÜNCELLEYİCİ (ProfileDbContext olarak düzeltildi) ---
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ProfileDbContext>();
+    dbContext.Database.Migrate(); 
+}
+// ----------------------------------------
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -83,6 +113,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // 4. Kimlik Doğrulamayı Aktif Et
+app.UseCors(MobileClientCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 

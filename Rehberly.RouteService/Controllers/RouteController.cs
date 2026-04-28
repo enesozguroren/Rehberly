@@ -1,89 +1,230 @@
+using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Rehberly.RouteService.Data;
 using Rehberly.RouteService.DTOs;
 using Rehberly.RouteService.Models;
-using System.Security.Claims;
-using MassTransit;
-using Rehberly.Shared;
+using Rehberly.Shared.Messages;
 
-namespace Rehberly.RouteService.Controllers
+namespace Rehberly.RouteService.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class RouteController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class RouteController : ControllerBase
+    private readonly RouteDbContext _context;
+    private readonly IPublishEndpoint _publishEndpoint;
+
+    public RouteController(RouteDbContext context, IPublishEndpoint publishEndpoint)
     {
-        private readonly RouteDbContext _context;
-        private readonly IPublishEndpoint _publishEndpoint; // POSTACIYI ÇAĞIR
+        _context = context;
+        _publishEndpoint = publishEndpoint;
+    }
 
-        // Sadece TEK BİR kurucu metodumuz (constructor) olmalı
-        public RouteController(RouteDbContext context, IPublishEndpoint publishEndpoint)
+    private IQueryable<RouteFeedDto> ProjectRouteFeed(IQueryable<Models.Route> query, string? username)
+    {
+        return query.Select(route => new RouteFeedDto
         {
-            _context = context;
-            _publishEndpoint = publishEndpoint;
-        }
-
-        // 1. ROTA OLUŞTURMA (Sadece giriş yapanlar "Ben burayı böyle gezdim" diyebilir)
-        [HttpPost]
-        [Authorize]
-        public async Task<IActionResult> CreateRoute(CreateRouteDto request)
-        {
-            var username = User.Identity?.Name ?? User.FindFirst(ClaimTypes.Name)?.Value;
-            if (string.IsNullOrEmpty(username)) return Unauthorized("Kimlik doğrulanamadı.");
-
-            var newRoute = new TravelRoute
-            {
-                Username = username,
-                Title = request.Title,
-                Description = request.Description,
-                TotalBudget = request.TotalBudget,
-                Stops = request.Stops.Select(s => new RouteStop
+            Id = route.Id,
+            OwnerUsername = route.OwnerUsername,
+            Title = route.Title,
+            Description = route.Description,
+            EstimatedBudget = route.EstimatedBudget,
+            CreatedAt = route.CreatedAt,
+            Stops = route.Stops
+                .OrderBy(stop => stop.DayNumber)
+                .Select(stop => new RouteStopDto
                 {
-                    Title = s.Title,
-                    Location = s.Location,
-                    Notes = s.Notes,
-                    ImageUrl = s.ImageUrl
-                }).ToList()
-            };
+                    Id = stop.Id,
+                    CityName = stop.CityName,
+                    StopName = stop.StopName,
+                    DayNumber = stop.DayNumber,
+                    Notes = stop.Notes
+                })
+                .ToList(),
+            LikesCount = _context.RouteLikes.Count(like => like.RouteId == route.Id),
+            CommentsCount = _context.RouteComments.Count(comment => comment.RouteId == route.Id),
+            SavesCount = _context.RouteSaves.Count(save => save.RouteId == route.Id),
+            IsLiked = username != null && _context.RouteLikes.Any(like => like.RouteId == route.Id && like.Username == username),
+            IsSaved = username != null && _context.RouteSaves.Any(save => save.RouteId == route.Id && save.Username == username)
+        });
+    }
 
-            _context.TravelRoutes.Add(newRoute);
-            await _context.SaveChangesAsync();
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> CreateRoute(CreateRouteDto request)
+    {
+        var ownerUsername = User.Identity?.Name;
+        if (string.IsNullOrEmpty(ownerUsername)) return Unauthorized();
 
-            return Ok(new { message = "Harika! Rotan başarıyla paylaşıldı ve diğer gezginlere ilham olmaya hazır.", routeId = newRoute.Id });
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            return BadRequest("Rota basligi bos olamaz.");
         }
 
-        // 2. ANA AKIŞ / KEŞFET (Herkes görebilir, Trend rotalar en üstte!)
-        [HttpGet("feed")]
-        public async Task<IActionResult> GetFeed()
+        var newRoute = new Models.Route
         {
-            var routes = await _context.TravelRoutes
-                .Include(r => r.Stops) 
-                .OrderByDescending(r => r.SaveCount) 
-                .Take(50) 
-                .ToListAsync();
-
-            return Ok(routes);
-        }
-
-        // 3. ROTAYI KAYDETME (Gamification / Oyunlaştırma Puanı!)
-        [HttpPost("{id}/save")]
-        [Authorize]
-        public async Task<IActionResult> SaveRoute(int id)
-        {
-            var route = await _context.TravelRoutes.FindAsync(id);
-            if (route == null) return NotFound("Böyle bir rota bulunamadı.");
-
-            route.SaveCount += 1; 
-            await _context.SaveChangesAsync();
-
-            // 🐇 POSTACIYA MEKTUBU VERİYORUZ!
-            await _publishEndpoint.Publish(new RouteSavedEvent
+            OwnerUsername = ownerUsername,
+            Title = request.Title.Trim(),
+            Description = request.Description.Trim(),
+            EstimatedBudget = request.EstimatedBudget,
+            Stops = request.Stops.Select(stop => new RouteStop
             {
-                RouteOwnerUsername = route.Username
-            });
+                CityName = stop.CityName.Trim(),
+                StopName = stop.StopName.Trim(),
+                DayNumber = stop.DayNumber,
+                Notes = stop.Notes.Trim()
+            }).ToList()
+        };
 
-            return Ok(new { message = "Rota başarıyla kaydedildi! (Mektup postaneye bırakıldı)", currentSaveCount = route.SaveCount });
+        _context.Routes.Add(newRoute);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Rota basariyla olusturuldu!", routeId = newRoute.Id });
+    }
+
+    [HttpGet("feed")]
+    public async Task<IActionResult> GetFeed()
+    {
+        var username = User.Identity?.IsAuthenticated == true ? User.Identity.Name : null;
+
+        var routes = await ProjectRouteFeed(_context.Routes, username)
+            .OrderByDescending(route => route.CreatedAt)
+            .Take(20)
+            .ToListAsync();
+
+        return Ok(routes);
+    }
+
+    [HttpGet("saved")]
+    [Authorize]
+    public async Task<IActionResult> GetSavedRoutes()
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var routeIds = await _context.RouteSaves
+            .Where(save => save.Username == username)
+            .OrderByDescending(save => save.SavedAt)
+            .Select(save => save.RouteId)
+            .ToListAsync();
+
+        var routes = await ProjectRouteFeed(
+                _context.Routes.Where(route => routeIds.Contains(route.Id)),
+                username)
+            .ToListAsync();
+
+        return Ok(routes.OrderBy(route => routeIds.IndexOf(route.Id)));
+    }
+
+    [HttpPost("{id}/like")]
+    [Authorize]
+    public async Task<IActionResult> LikeRoute(Guid id)
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var routeExists = await _context.Routes.AnyAsync(route => route.Id == id);
+        if (!routeExists) return NotFound("Rota bulunamadi.");
+
+        var existingLike = await _context.RouteLikes.AnyAsync(like => like.RouteId == id && like.Username == username);
+        if (existingLike) return Ok(new { message = "Rota zaten begenildi.", isLiked = true });
+
+        _context.RouteLikes.Add(new RouteLike { RouteId = id, Username = username });
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Rota begenildi!", isLiked = true });
+    }
+
+    [HttpGet("{id}/comments")]
+    public async Task<IActionResult> GetRouteComments(Guid id)
+    {
+        var comments = await _context.RouteComments
+            .Where(comment => comment.RouteId == id)
+            .OrderByDescending(comment => comment.CreatedAt)
+            .Select(comment => new RouteCommentDto
+            {
+                Id = comment.Id,
+                Username = comment.Username,
+                Text = comment.Text,
+                CreatedAt = comment.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(comments);
+    }
+
+    [HttpPost("{id}/comment")]
+    [Authorize]
+    public async Task<IActionResult> CommentRoute(Guid id, [FromBody] CommentRouteDto request)
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var text = request.Text.Trim();
+        if (string.IsNullOrWhiteSpace(text)) return BadRequest("Yorum bos olamaz.");
+
+        var routeExists = await _context.Routes.AnyAsync(route => route.Id == id);
+        if (!routeExists) return NotFound("Rota bulunamadi.");
+
+        var comment = new RouteComment { RouteId = id, Username = username, Text = text };
+        _context.RouteComments.Add(comment);
+        await _context.SaveChangesAsync();
+
+        return Ok(new RouteCommentDto
+        {
+            Id = comment.Id,
+            Username = comment.Username,
+            Text = comment.Text,
+            CreatedAt = comment.CreatedAt
+        });
+    }
+
+    [HttpPost("{id}/save")]
+    [Authorize]
+    public async Task<IActionResult> SaveRoute(Guid id)
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var route = await _context.Routes.FindAsync(id);
+        if (route == null) return NotFound("Rota bulunamadi.");
+
+        var existingSave = await _context.RouteSaves.AnyAsync(save => save.RouteId == id && save.Username == username);
+        if (existingSave)
+        {
+            return Ok(new { message = "Rota zaten kaydedildi.", routeId = id, isSaved = true });
         }
+
+        _context.RouteSaves.Add(new RouteSave { RouteId = id, Username = username });
+        await _context.SaveChangesAsync();
+
+        await _publishEndpoint.Publish(new RouteSavedEvent
+        {
+            Username = username,
+            RouteName = route.Title
+        });
+
+        return Ok(new { message = "Rota kaydedildi ve rutbeniz isleniyor!", routeId = id, isSaved = true });
+    }
+
+    [HttpDelete("{id}/save")]
+    [Authorize]
+    public async Task<IActionResult> UnsaveRoute(Guid id)
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var save = await _context.RouteSaves.FirstOrDefaultAsync(item => item.RouteId == id && item.Username == username);
+        if (save == null)
+        {
+            return Ok(new { message = "Rota kayitlarda yok.", routeId = id, isSaved = false });
+        }
+
+        _context.RouteSaves.Remove(save);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Rota kayitlardan kaldirildi.", routeId = id, isSaved = false });
     }
 }

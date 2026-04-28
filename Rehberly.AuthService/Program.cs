@@ -7,25 +7,36 @@ using System.Text;
 using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
+const string MobileClientCorsPolicy = "MobileClient";
 
 builder.Services.AddMassTransit(x =>
 {
     x.UsingRabbitMq((context, cfg) =>
     {
         // Docker'daki rabbitmq servisimize bağlanıyoruz
-        cfg.Host("rabbitmq", "/", h => {
+        var rabbitMqHost = builder.Configuration["RabbitMq:Host"] ?? "rabbitmq";
+        cfg.Host(rabbitMqHost, "/", h => {
             h.Username("guest");
             h.Password("guest");
         });
     });
 });
 
-// 1. Veritabanı Bağlantısı
+// 1. Veritabanı Bağlantısı (İsim AppDbContext olarak düzeltildi!)
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(MobileClientCorsPolicy, policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 // 2. Swagger'a "Kilit" (Authorize) Butonu Ekleme
 builder.Services.AddSwaggerGen(c =>
@@ -67,15 +78,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
+// --- OTOMATİK VERİTABANI GÜNCELLEYİCİ (AppDbContext olarak düzeltildi!) ---
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate(); 
+}
+// ----------------------------------------
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// app.UseHttpsRedirection(); // HTTPS uyarısını susturmuştuk hatırlarsan
-
 // 4. Kimlik Doğrulama ve Yetkilendirmeyi Aktif Et
+app.UseCors(MobileClientCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 

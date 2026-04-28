@@ -57,7 +57,12 @@ namespace Rehberly.AuthService.Controllers
                 Email = newUser.Email
             });
 
-            return Ok(new { message = "Kullanıcı başarıyla oluşturuldu!" });
+            return Ok(new
+            {
+                message = "Kullanici basariyla olusturuldu!",
+                username = newUser.Username,
+                email = newUser.Email
+            });
         }
 
         [HttpPost("login")]
@@ -89,15 +94,22 @@ namespace Rehberly.AuthService.Controllers
             };
 
             // 4. Token'ı oluştur
+            var expiresAt = DateTime.UtcNow.AddDays(1);
+
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.Now.AddDays(1),
+                expires: expiresAt,
                 signingCredentials: creds
             );
 
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 
-            return Ok(new { token = jwt });
+            return Ok(new
+            {
+                token = jwt,
+                username = user.Username,
+                expiresAt
+            });
         }
 
         // SADECE GİRİŞ YAPMIŞ KULLANICILAR BURAYI GÖREBİLİR

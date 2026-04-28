@@ -1,13 +1,25 @@
-# Rehberly - Microservice Architecture 🚀
+# Rehberly - Microservice Architecture & Mobile App 🚀
 
-Modern, ölçeklenebilir ve güvenli bir sosyal platform altyapısı. Bu proje, dağıtık sistem prensiplerine uygun olarak mikroservis mimarisi ile geliştirilmektedir. Mevcut depo (repository), sistemin kimlik doğrulama ve yetkilendirme süreçlerini yöneten **AuthService** modülünü içermektedir.
+Modern, ölçeklenebilir ve güvenli bir sosyal rota platformu. Bu proje, dağıtık sistem prensiplerine uygun olarak mikroservis mimarisi ile .NET ortamında geliştirilmiş arka plan servislerini ve bu servislere bağlanan çapraz platform (cross-platform) bir mobil uygulamayı içermektedir.
 
 ## 🛠 Kullanılan Teknolojiler
-* **Framework:** .NET 10 (ASP.NET Core Web API)
-* **Veritabanı:** PostgreSQL
+* **Backend:** .NET 10 (ASP.NET Core Web API)
+* **Mobile Frontend:** Flutter & Dart
+* **Veritabanı & Mesajlaşma:** PostgreSQL, RabbitMQ (Docker üzerinden çalışır)
 * **ORM:** Entity Framework Core
-* **Güvenlik:** BCrypt (Password Hashing), JWT (JSON Web Token) *[Geliştirme Aşamasında]*
+* **Güvenlik:** BCrypt (Password Hashing), JWT (JSON Web Token)
+* **İletişim:** Senkron (REST API) ve Asenkron (RabbitMQ) mikroservis haberleşmesi
 * **Dokümantasyon:** Swagger / OpenAPI
+
+---
+
+## 🧩 Sistem Mimarisi
+
+Proje, birbirinden bağımsız çalışabilen ve yönetilebilen şu modüllerden oluşmaktadır:
+1. **AuthService:** Kullanıcı kayıt, giriş ve JWT tabanlı kimlik doğrulama işlemleri.
+2. **ProfileService:** Kullanıcı profillerinin yönetimi.
+3. **RouteService:** Rota oluşturma, kaydetme ve keşfetme işlemleri.
+4. **Mobile Client:** Servislerle API Gateway üzerinden veya doğrudan haberleşen kullanıcı arayüzü.
 
 ---
 
@@ -15,52 +27,84 @@ Modern, ölçeklenebilir ve güvenli bir sosyal platform altyapısı. Bu proje, 
 
 Proje, yazılım mühendisliği yaşam döngüsüne uygun olarak aşağıdaki 13 haftalık sprintlere bölünerek geliştirilmektedir:
 
-* **1. Hafta (13 Mart - 19 Mart):** Proje gereksinim analizi, mikroservis mimari tasarım kararlarının alınması ve veritabanı şemalarının teorik planlaması.
-* **2. Hafta (20 Mart - 26 Mart):** Geliştirme ortamının kurulması, .NET 10 ve PostgreSQL entegrasyonu, AuthService iskeletinin ayağa kaldırılması. 
-* **3. Hafta (27 Mart - 2 Nisan):** Entity Framework Core migration işlemlerinin yapılması, Kullanıcı (User) modellerinin oluşturulması ve Register (Kayıt) uç noktasının BCrypt şifreleme ile tamamlanması.
-* **4. Hafta (3 Nisan - 9 Nisan):** JWT (JSON Web Token) altyapısının sisteme entegre edilmesi ve Login (Giriş) doğrulama servislerinin yazılması.
-* **5. Hafta (10 Nisan - 16 Nisan):** API Gateway (API Geçidi) araştırmalarının yapılması ve mikroservisler için temel yönlendirme (routing) konfigürasyonlarının hazırlanması.
-* **6. Hafta (17 Nisan - 23 Nisan):** Platformun ikinci temel mikroservisinin (örn. Kullanıcı Profili veya İçerik servisi) tasarlanması ve bağımsız veritabanı bağlantılarının kurulması.
-* **7. Hafta (24 Nisan - 30 Nisan):** Mikroservisler arası güvenli iletişimin (senkron/REST veya asenkron/Message Broker) kurgulanması.
-* **8. Hafta (1 Mayıs - 7 Mayıs):** Sistem genelinde Global Exception Handling (Merkezi Hata Yönetimi) yapısının kurulması ve siber güvenlik sıkılaştırmalarının (CORS, Rate Limiting) yapılması.
-* **9. Hafta (8 Mayıs - 14 Mayıs):** İstemci (Frontend) entegrasyonu için hazırlıkların yapılması ve Swagger üzerinden kapsamlı API testlerinin yürütülmesi.
-* **10. Hafta (15 Mayıs - 21 Mayıs):** Kritik iş mantıkları için birim testlerinin (Unit Testing) yazılması ve kod refactoring işlemleri.
-* **11. Hafta (22 Mayıs - 28 Mayıs):** Mikroservislerin izole edilmesi amacıyla Dockerize işlemleri (Dockerfile ve docker-compose yazımı).
-* **12. Hafta (29 Mayıs - 4 Haziran):** Konteyner mimarisinin bulut ortamına (örneğin Kubernetes cluster veya temel sunucu) deploy edilmesi için CI/CD süreçlerinin tasarlanması.
-* **13. Hafta (5 Haziran - 11 Haziran):** Son entegrasyon testlerinin yapılması, olası hataların (bug-fix) giderilmesi, README ve API dokümantasyonlarının nihai haline getirilerek projenin teslime hazır hale getirilmesi.
+* **1. Hafta (13 Mart - 19 Mart):** Proje gereksinim analizi, mikroservis mimari tasarım kararlarının alınması ve veritabanı şemalarının planlaması.
+* **2. Hafta (20 Mart - 26 Mart):** Geliştirme ortamının kurulması, .NET 10 ve PostgreSQL entegrasyonu. 
+* **3. Hafta (27 Mart - 2 Nisan):** Entity Framework Core migration işlemleri, Kullanıcı modellerinin oluşturulması ve Register uç noktasının BCrypt ile tamamlanması.
+* **4. Hafta (3 Nisan - 9 Nisan):** JWT altyapısının entegre edilmesi ve Login servislerinin yazılması.
+* **5. Hafta (10 Nisan - 16 Nisan):** API Gateway araştırmaları ve temel yönlendirme konfigürasyonlarının hazırlanması.
+* **6. Hafta (17 Nisan - 23 Nisan):** ProfileService ve RouteService mikroservislerinin tasarlanması.
+* **7. Hafta (24 Nisan - 30 Nisan):** Mikroservisler arası iletişimin (RabbitMQ) kurgulanması. Mobil uygulama temellerinin atılması.
+* **8. Hafta (1 Mayıs - 7 Mayıs):** Merkezi Hata Yönetimi (Global Exception Handling) ve siber güvenlik sıkılaştırmaları.
+* **9. Hafta (8 Mayıs - 14 Mayıs):** İstemci (Flutter) entegrasyonu ve API testleri.
+* **10. Hafta (15 Mayıs - 21 Mayıs):** Birim testlerinin (Unit Testing) yazılması ve kod refactoring.
+* **11. Hafta (22 Mayıs - 28 Mayıs):** Dockerize işlemleri (Dockerfile ve docker-compose yazımı).
+* **12. Hafta (29 Mayıs - 4 Haziran):** CI/CD süreçlerinin tasarlanması ve bulut ortamına deploy hazırlığı.
+* **13. Hafta (5 Haziran - 11 Haziran):** Son entegrasyon testleri, bug-fix, dokümantasyon ve proje teslimi.
 
 ---
 
 ## ⚙️ Kurulum ve Çalıştırma Rehberi
 
-Projeyi kendi bilgisayarınızda (lokal ortamda) ayağa kaldırmak için aşağıdaki adımları izleyebilirsiniz.
+Projeyi kendi bilgisayarınızda ayağa kaldırmak için aşağıdaki adımları izleyebilirsiniz.
 
-### Ön Koşullar
+### 📌 Ön Koşullar
 * [.NET 10 SDK](https://dotnet.microsoft.com/download)
-* [PostgreSQL](https://www.postgresql.org/download/) (v16 veya üzeri önerilir)
+* [Flutter SDK](https://docs.flutter.dev/get-started/install)
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Postgres ve RabbitMQ için)
 
-### Adım 1: Veritabanı Ayarları
-1. PostgreSQL'i kurun ve çalışır durumda olduğundan emin olun.
-2. Proje dizinindeki `Rehberly.AuthService/appsettings.json` dosyasını açın.
-3. `ConnectionStrings:DefaultConnection` alanındaki `Password=senin_sifren` kısmını kendi yerel PostgreSQL şifreniz ile güncelleyin.
+### BÖLÜM 1: Sıfırdan İlk Kurulum
+*Projeyi bilgisayarınıza ilk kez indirdiğinizde yapmanız gerekenler:*
 
-### Adım 2: Tabloların Oluşturulması (Migration)
-Terminali açın, `Rehberly.AuthService` dizinine girin ve Entity Framework Core kullanarak veritabanı tablolarını oluşturun:
+1. Terminalde proje ana dizinindeyken mobil paketleri indirin ve Android klasörünü oluşturun:
+   ```bash
+   cd mobile
+   flutter pub get
+   flutter create --platforms=android .
+2. Uygulamanın yerel ağa bağlanabilmesi için mobile/android/app/src/main/AndroidManifest.xml dosyasındaki <application etiketinin içine şu satırı ekleyin:
+    android:usesCleartextTraffic="true"
 
-```bash
-cd Rehberly.AuthService
-dotnet ef database update
-```
 
-### Adım 3: Projeyi Başlatma
-Tablolar başarıyla oluştuktan sonra, sunucuyu ayağa kaldırmak için şu komutu çalıştırın:
 
-```bash
-dotnet run
-```
+# BÖLÜM 1: GÜNLÜK ÇALIŞTIRMA RUTİNİ (Bilgisayarı kapatıp açtıktan sonra)
 
-### Adım 4: Test (Swagger)
-Uygulama çalıştıktan sonra terminalde belirtilen adrese (genellikle `http://localhost:5229`) gidin ve URL'in sonuna `/swagger` ekleyerek API arayüzüne erişin. Örnek:
-`http://localhost:5229/swagger`
+## Adım 1: Telefonu Bilgisayara Bağla
+Bilgisayarı yeniden başlattığın için telefonunla bilgisayar arasındaki kablosuz bağlantı koptu. Tekrar bağlamak için:
+1. Bilgisayarından **Mobil Etkin Nokta**'yı (Hotspot) aç ve telefonunun bu ağa bağlı olduğundan emin ol.
+2. Telefonda **Geliştirici Seçenekleri -> Kablosuz Hata Ayıklama** menüsüne gir.
+3. Kablosuz hata ayıklamayı kapatıp tekrar aç.
+4. Ekranda yazan **IP adresi ve Bağlantı noktası** rakamlarına bak (Örn: `192.168.137.47:12345`).
+5. VS Code'da bir terminal aç ve şu komutları sırayla gir:
+   cd $env:LOCALAPPDATA\Android\sdk\platform-tools
+   .\adb connect TELEFONDA_YAZAN_IP:TELEFONDA_YAZAN_PORT
 
-Buradan `/api/Auth/register` gibi uç noktaları doğrudan tarayıcınız üzerinden test edebilirsiniz.
+## Adım 2: Veritabanını (Docker) Çalıştır
+Arka plandaki veritabanlarının uyanması lazım.
+1. Windows Başlat menüsünden Docker Desktop'ı aç ve sağ alttaki balina simgesi sabitlenene kadar (çalışana kadar) bekle.
+2. VS Code'da terminali projenin ana klasörüne (Rehberly) getir ve şunu yaz:
+    docker compose up -d postgres rabbitmq
+
+## Adım 3: Arka Plan Servislerini (Backend) Çalıştır
+Veritabanı hazır, şimdi bizim yazdığımız API servislerini ayaklandırmamız lazım.
+1. VS Code'da terminali projenin ana klasöründe (Rehberly) tutarak ekranı 3'e böl (Split Terminal).
+2. Her bir pencereye şu komutlardan birini yapıştırıp Enter'a bas:
+    dotnet run --project Rehberly.AuthService --launch-profile mobile   
+    dotnet run --project Rehberly.RouteService --launch-profile mobile
+    dotnet run --project Rehberly.ProfileService --launch-profile mobile
+(Servislerin ekranda dinlemeye başladığını gördüğünde arka plan tamamen hazır demektir).
+
+## Adım 4: Uygulamayı Telefonda Başlat
+Uygulama beyninin nerede olduğunu (yani senin bilgisayarının adresini) bilmeli.
+1. Yeni bir terminal sekmesi aç ve bilgisayarının IP'sini öğrenmek için ipconfig yaz.
+2. Çıkan listede Mobil Etkin Nokta (veya Yerel Ağ Bağlantısı) altındaki IPv4 Adresini bul (Genelde 192.168.137.1 olur).
+3. Terminalde mobile klasörüne gir ve bulduğun IP adresiyle uygulamayı çalıştır:
+    cd mobile
+    flutter run --dart-define=REHBERLY_API_HOST=BULDUGUN_IP_ADRESI
+4. Terminal sana 2 seçenek sunarsa 1 yaz ve Enter'a bas. Uygulama telefonda açılacaktır! ek olarak: 
+    Uygulama telefonda çalışırken terminal ekranında (flutter run komutunu yazdığın sekmede) klavyeden şu tuşlara basarak hızlıca işlem yapabilirsin (Enter'a basmana gerek yok):
+    r (Hot Reload): Kodda yaptığın görsel veya mantıksal değişiklikleri saniyeler içinde telefona yansıtır. Uygulamayı baştan başlatmaz, sadece değişen yerleri günceller.
+    R (Hot Restart): Uygulamayı telefonda tamamen yeniden başlatır. State (durum) ve değişkenler sıfırlanır, en başa döner.
+    q (Quit): Uygulamayı telefonda kapatır ve terminaldeki çalışma sürecini tamamen sonlandırır.
+    d (Detach): Uygulama telefonda çalışmaya devam eder ama VS Code ile olan bağlantısı kopar (Artık logları göremezsin, kendi kendine takılır).
+    c (Clear): Terminal ekranındaki kalabalık log yazılarını temizler, ekranı ferahlatır.
+    h (Help): Kullanabileceğin tüm diğer komutları terminalde listeler.
+

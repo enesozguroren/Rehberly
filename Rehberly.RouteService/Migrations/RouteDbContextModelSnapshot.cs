@@ -22,47 +22,11 @@ namespace Rehberly.RouteService.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Rehberly.RouteService.Models.RouteStop", b =>
+            modelBuilder.Entity("Rehberly.RouteService.Models.Route", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("TravelRouteId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TravelRouteId");
-
-                    b.ToTable("RouteStops");
-                });
-
-            modelBuilder.Entity("Rehberly.RouteService.Models.TravelRoute", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -71,15 +35,37 @@ namespace Rehberly.RouteService.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("SaveCount")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("EstimatedBudget")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("OwnerUsername")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<decimal>("TotalBudget")
-                        .HasColumnType("numeric");
+                    b.HasKey("Id");
+
+                    b.ToTable("Routes");
+                });
+
+            modelBuilder.Entity("Rehberly.RouteService.Models.RouteComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -87,21 +73,94 @@ namespace Rehberly.RouteService.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TravelRoutes");
+                    b.ToTable("RouteComments");
+                });
+
+            modelBuilder.Entity("Rehberly.RouteService.Models.RouteLike", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("LikedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RouteLikes");
+                });
+
+            modelBuilder.Entity("Rehberly.RouteService.Models.RouteSave", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("SavedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RouteSaves");
                 });
 
             modelBuilder.Entity("Rehberly.RouteService.Models.RouteStop", b =>
                 {
-                    b.HasOne("Rehberly.RouteService.Models.TravelRoute", "TravelRoute")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CityName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("DayNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StopName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RouteId");
+
+                    b.ToTable("RouteStops");
+                });
+
+            modelBuilder.Entity("Rehberly.RouteService.Models.RouteStop", b =>
+                {
+                    b.HasOne("Rehberly.RouteService.Models.Route", "Route")
                         .WithMany("Stops")
-                        .HasForeignKey("TravelRouteId")
+                        .HasForeignKey("RouteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("TravelRoute");
+                    b.Navigation("Route");
                 });
 
-            modelBuilder.Entity("Rehberly.RouteService.Models.TravelRoute", b =>
+            modelBuilder.Entity("Rehberly.RouteService.Models.Route", b =>
                 {
                     b.Navigation("Stops");
                 });

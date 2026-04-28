@@ -7,7 +7,9 @@ using System.Text;
 using MassTransit;
 
 
+
 var builder = WebApplication.CreateBuilder(args);
+const string MobileClientCorsPolicy = "MobileClient";
 
 // 1. Veritabanı Bağlantısı
 builder.Services.AddDbContext<RouteDbContext>(options =>
@@ -15,6 +17,15 @@ builder.Services.AddDbContext<RouteDbContext>(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(MobileClientCorsPolicy, policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 // MassTransit & RabbitMQ Ayarları
 builder.Services.AddMassTransit(x =>
@@ -22,7 +33,8 @@ builder.Services.AddMassTransit(x =>
     x.UsingRabbitMq((context, cfg) =>
     {
         // "localhost" yerine konteynerın adını ("rabbitmq") yazıyoruz
-        cfg.Host("rabbitmq", "/", h => {
+        var rabbitMqHost = builder.Configuration["RabbitMq:Host"] ?? "rabbitmq";
+        cfg.Host(rabbitMqHost, "/", h => {
             h.Username("guest");
             h.Password("guest");
         });
@@ -69,6 +81,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
+// --- OTOMATİK VERİTABANI GÜNCELLEYİCİ ---
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<RouteDbContext>();
+    dbContext.Database.Migrate(); 
+}
+// ----------------------------------------
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -76,6 +96,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // 4. Güvenliği Aktif Et
+app.UseCors(MobileClientCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 
