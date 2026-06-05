@@ -10,7 +10,8 @@ class ApiException implements Exception {
     final response = error.response;
     if (response != null) {
       return ApiException(
-        _messageFromBody(response.data) ?? _fallbackForStatus(response.statusCode),
+        _messageFromBody(response.data) ??
+            _fallbackForStatus(response.statusCode),
         statusCode: response.statusCode,
       );
     }

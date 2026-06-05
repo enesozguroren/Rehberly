@@ -57,7 +57,7 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: card,
-        indicatorColor: primary.withOpacity(0.12),
+        indicatorColor: primary.withValues(alpha: 0.12),
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             fontSize: 12,

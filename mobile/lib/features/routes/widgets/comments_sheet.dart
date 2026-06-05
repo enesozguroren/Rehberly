@@ -107,11 +107,14 @@ class _CommentsSheetState extends State<CommentsSheet> {
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                         leading: CircleAvatar(
-                          backgroundColor: AppTheme.primary.withOpacity(0.12),
+                          backgroundColor:
+                              AppTheme.primary.withValues(alpha: 0.12),
                           child: Text(
                             comment.username.isEmpty
                                 ? '?'
-                                : comment.username.substring(0, 1).toUpperCase(),
+                                : comment.username
+                                    .substring(0, 1)
+                                    .toUpperCase(),
                             style: const TextStyle(
                               color: AppTheme.primary,
                               fontWeight: FontWeight.w800,

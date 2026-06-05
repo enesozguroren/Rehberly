@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'platform_host.dart';
 
 class ApiConfig {
@@ -34,7 +36,11 @@ class ApiConfig {
       defaultValue: 5068,
     );
 
-    final host = hostOverride.isEmpty ? defaultApiHost() : hostOverride;
+    final host = hostOverride.isEmpty
+        ? kIsWeb
+            ? 'localhost'
+            : defaultApiHost()
+        : hostOverride;
 
     if (useGateway) {
       final gatewayUrl = _origin(host, gatewayPort);

@@ -12,6 +12,8 @@ class TravelRoute {
     required this.savesCount,
     required this.isLiked,
     required this.isSaved,
+    this.coverImageUrl,
+    this.ownerAvatarUrl,
   });
 
   final String id;
@@ -26,6 +28,8 @@ class TravelRoute {
   final int savesCount;
   final bool isLiked;
   final bool isSaved;
+  final String? coverImageUrl;
+  final String? ownerAvatarUrl;
 
   String get budgetLabel => '\$${estimatedBudget.toStringAsFixed(0)}';
 
@@ -49,9 +53,16 @@ class TravelRoute {
     return title.toLowerCase().contains(normalized) ||
         description.toLowerCase().contains(normalized) ||
         ownerUsername.toLowerCase().contains(normalized) ||
-        stops.any((stop) =>
-            stop.cityName.toLowerCase().contains(normalized) ||
-            stop.stopName.toLowerCase().contains(normalized),);
+        stops.any(
+          (stop) =>
+              stop.cityName.toLowerCase().contains(normalized) ||
+              stop.stopName.toLowerCase().contains(normalized),
+        );
+  }
+
+  bool isOwnedBy(String? username) {
+    if (username == null) return false;
+    return ownerUsername.trim().toLowerCase() == username.trim().toLowerCase();
   }
 
   TravelRoute copyWith({
@@ -60,6 +71,9 @@ class TravelRoute {
     int? savesCount,
     bool? isLiked,
     bool? isSaved,
+    String? coverImageUrl,
+    String? ownerAvatarUrl,
+    List<RouteStop>? stops,
   }) {
     return TravelRoute(
       id: id,
@@ -68,12 +82,14 @@ class TravelRoute {
       description: description,
       estimatedBudget: estimatedBudget,
       createdAt: createdAt,
-      stops: stops,
+      stops: stops ?? this.stops,
       likesCount: likesCount ?? this.likesCount,
       commentsCount: commentsCount ?? this.commentsCount,
       savesCount: savesCount ?? this.savesCount,
       isLiked: isLiked ?? this.isLiked,
       isSaved: isSaved ?? this.isSaved,
+      coverImageUrl: coverImageUrl ?? this.coverImageUrl,
+      ownerAvatarUrl: ownerAvatarUrl ?? this.ownerAvatarUrl,
     );
   }
 
@@ -87,13 +103,24 @@ class TravelRoute {
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
       stops: (json['stops'] as List<dynamic>? ?? [])
-          .map((item) => RouteStop.fromJson(Map<String, dynamic>.from(item as Map)))
+          .map(
+            (item) =>
+                RouteStop.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
           .toList(),
       likesCount: (json['likesCount'] as num?)?.toInt() ?? 0,
       commentsCount: (json['commentsCount'] as num?)?.toInt() ?? 0,
       savesCount: (json['savesCount'] as num?)?.toInt() ?? 0,
       isLiked: json['isLiked'] as bool? ?? false,
       isSaved: json['isSaved'] as bool? ?? false,
+      coverImageUrl: _firstString(
+        json,
+        ['coverImageUrl', 'mainCoverImageUrl', 'coverPhotoUrl'],
+      ),
+      ownerAvatarUrl: _firstString(
+        json,
+        ['ownerAvatarUrl', 'ownerProfilePictureUrl', 'profilePictureUrl'],
+      ),
     );
   }
 }
@@ -105,6 +132,7 @@ class RouteStop {
     required this.stopName,
     required this.dayNumber,
     required this.notes,
+    this.photoUrls = const [],
   });
 
   final String id;
@@ -112,6 +140,20 @@ class RouteStop {
   final String stopName;
   final int dayNumber;
   final String notes;
+  final List<String> photoUrls;
+
+  RouteStop copyWith({
+    List<String>? photoUrls,
+  }) {
+    return RouteStop(
+      id: id,
+      cityName: cityName,
+      stopName: stopName,
+      dayNumber: dayNumber,
+      notes: notes,
+      photoUrls: photoUrls ?? this.photoUrls,
+    );
+  }
 
   factory RouteStop.fromJson(Map<String, dynamic> json) {
     return RouteStop(
@@ -120,6 +162,27 @@ class RouteStop {
       stopName: json['stopName'] as String? ?? '',
       dayNumber: (json['dayNumber'] as num?)?.toInt() ?? 0,
       notes: json['notes'] as String? ?? '',
+      photoUrls: _stringList(json['photoUrls'] ?? json['imageUrls']),
     );
   }
+}
+
+String? _firstString(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+List<String> _stringList(Object? value) {
+  if (value is! List) return const [];
+
+  return value
+      .whereType<String>()
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toList();
 }

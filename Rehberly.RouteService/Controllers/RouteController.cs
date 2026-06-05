@@ -63,25 +63,81 @@ public class RouteController : ControllerBase
             return BadRequest("Rota basligi bos olamaz.");
         }
 
+        if (string.IsNullOrWhiteSpace(request.Description))
+        {
+            return BadRequest("Rota aciklamasi bos olamaz.");
+        }
+
+        if (request.EstimatedBudget <= 0)
+        {
+            return BadRequest("Tahmini butce 0'dan buyuk olmalidir.");
+        }
+
+        if (request.Stops == null || request.Stops.Count == 0)
+        {
+            return BadRequest("En az bir durak eklemelisiniz.");
+        }
+
+        if (request.Stops.Any(stop =>
+                string.IsNullOrWhiteSpace(stop.CityName) ||
+                string.IsNullOrWhiteSpace(stop.StopName) ||
+                stop.DayNumber <= 0))
+        {
+            return BadRequest("Durak bilgileri eksiksiz olmalidir.");
+        }
+
         var newRoute = new Models.Route
         {
             OwnerUsername = ownerUsername,
             Title = request.Title.Trim(),
             Description = request.Description.Trim(),
             EstimatedBudget = request.EstimatedBudget,
-            Stops = request.Stops.Select(stop => new RouteStop
-            {
-                CityName = stop.CityName.Trim(),
-                StopName = stop.StopName.Trim(),
-                DayNumber = stop.DayNumber,
-                Notes = stop.Notes.Trim()
-            }).ToList()
+            Stops = request.Stops
+                .OrderBy(stop => stop.DayNumber)
+                .Select(stop => new RouteStop
+                {
+                    CityName = stop.CityName.Trim(),
+                    StopName = stop.StopName.Trim(),
+                    DayNumber = stop.DayNumber,
+                    Notes = stop.Notes?.Trim() ?? string.Empty
+                }).ToList()
         };
 
         _context.Routes.Add(newRoute);
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Rota basariyla olusturuldu!", routeId = newRoute.Id });
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteRoute([FromRoute] Guid id)
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var route = await _context.Routes.FirstOrDefaultAsync(item => item.Id == id);
+        if (route == null) return NotFound("Rota bulunamadi.");
+
+        if (!string.Equals(
+                route.OwnerUsername.Trim(),
+                username.Trim(),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
+        var likes = _context.RouteLikes.Where(item => item.RouteId == id);
+        var comments = _context.RouteComments.Where(item => item.RouteId == id);
+        var saves = _context.RouteSaves.Where(item => item.RouteId == id);
+
+        _context.RouteLikes.RemoveRange(likes);
+        _context.RouteComments.RemoveRange(comments);
+        _context.RouteSaves.RemoveRange(saves);
+        _context.Routes.Remove(route);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 
     [HttpGet("feed")]
@@ -128,13 +184,38 @@ public class RouteController : ControllerBase
         var routeExists = await _context.Routes.AnyAsync(route => route.Id == id);
         if (!routeExists) return NotFound("Rota bulunamadi.");
 
-        var existingLike = await _context.RouteLikes.AnyAsync(like => like.RouteId == id && like.Username == username);
-        if (existingLike) return Ok(new { message = "Rota zaten begenildi.", isLiked = true });
+        var existingLike = await _context.RouteLikes.FirstOrDefaultAsync(like => like.RouteId == id && like.Username == username);
+        if (existingLike != null)
+        {
+            _context.RouteLikes.Remove(existingLike);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Rota begenisi kaldirildi.", routeId = id, isLiked = false });
+        }
 
         _context.RouteLikes.Add(new RouteLike { RouteId = id, Username = username });
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Rota begenildi!", isLiked = true });
+    }
+
+    [HttpDelete("{id}/like")]
+    [Authorize]
+    public async Task<IActionResult> UnlikeRoute(Guid id)
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var like = await _context.RouteLikes.FirstOrDefaultAsync(item => item.RouteId == id && item.Username == username);
+        if (like == null)
+        {
+            return Ok(new { message = "Rota begenilerde yok.", routeId = id, isLiked = false });
+        }
+
+        _context.RouteLikes.Remove(like);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Rota begenisi kaldirildi.", routeId = id, isLiked = false });
     }
 
     [HttpGet("{id}/comments")]

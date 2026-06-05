@@ -36,9 +36,10 @@ class ProfileSummaryCard extends StatelessWidget {
                         current.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
                       ),
                       const SizedBox(height: 4),
                       Row(
@@ -131,7 +132,7 @@ class _Avatar extends StatelessWidget {
 
     return CircleAvatar(
       radius: 31,
-      backgroundColor: AppTheme.primary.withOpacity(0.14),
+      backgroundColor: AppTheme.primary.withValues(alpha: 0.14),
       backgroundImage: hasRemoteAvatar ? NetworkImage(url) : null,
       child: hasRemoteAvatar
           ? null

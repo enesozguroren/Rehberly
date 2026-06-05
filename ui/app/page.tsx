@@ -155,9 +155,7 @@ export default function TravelDashboard() {
       <main className="max-w-md mx-auto px-4 py-5">
         {activeTab === "discover" && (
           <>
-            <ProfileCard {...userProfile} />
-            
-            <section className="mt-6">
+            <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-foreground">
                   Discover Routes

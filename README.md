@@ -72,10 +72,11 @@ Bilgisayarı yeniden başlattığın için telefonunla bilgisayar arasındaki ka
 1. Bilgisayarından **Mobil Etkin Nokta**'yı (Hotspot) aç ve telefonunun bu ağa bağlı olduğundan emin ol.
 2. Telefonda **Geliştirici Seçenekleri -> Kablosuz Hata Ayıklama** menüsüne gir.
 3. Kablosuz hata ayıklamayı kapatıp tekrar aç.
-4. Ekranda yazan **IP adresi ve Bağlantı noktası** rakamlarına bak (Örn: `192.168.137.47:12345`).
+4. Ekranda yazan **IP adresi ve Bağlantı noktası** rakamlarına bak (Örn: `192.168.137.47:12345`). 
 5. VS Code'da bir terminal aç ve şu komutları sırayla gir:
    cd $env:LOCALAPPDATA\Android\sdk\platform-tools
    .\adb connect TELEFONDA_YAZAN_IP:TELEFONDA_YAZAN_PORT
+   ( .\adb pair[ip]:[port] ile eşleşme yapmanız gerekebilir)
 
 ## Adım 2: Veritabanını (Docker) Çalıştır
 Arka plandaki veritabanlarının uyanması lazım.
@@ -108,3 +109,71 @@ Uygulama beyninin nerede olduğunu (yani senin bilgisayarının adresini) bilmel
     c (Clear): Terminal ekranındaki kalabalık log yazılarını temizler, ekranı ferahlatır.
     h (Help): Kullanabileceğin tüm diğer komutları terminalde listeler.
 
+    
+
+# Rehberly Web Kullanımı
+
+Rehberly uygulaması Flutter Mobile ve Flutter Web platformlarını desteklemektedir. Mobil ve web istemcileri aynı .NET mikroservis altyapısını ve aynı veritabanını kullandığından, bir platformda yapılan işlemler diğer platformda da anlık olarak görüntülenebilir.
+
+## Web Uygulamasını Çalıştırma
+
+### 1. Backend Servislerini Başlatma
+
+Aşağıdaki servislerin çalışır durumda olduğundan emin olun:
+
+* AuthService
+* RouteService
+* ProfileService
+* Gateway (varsa)
+
+### 2. Flutter Projesine Geçiş
+
+```bash
+cd mobile
+```
+
+### 3. Gerekli Paketleri Yükleme
+
+```bash
+flutter pub get
+```
+
+### 4. Web Uygulamasını Başlatma
+
+```bash
+flutter run -d chrome --web-port 5000
+```
+
+Uygulama başarıyla başlatıldığında aşağıdaki adreste açılacaktır:
+
+```text
+http://localhost:5000
+```
+
+## Web Özellikleri
+
+* Responsive tasarım desteği
+* Sidebar navigasyon (tablet/web)
+* Mobil görünüm desteği
+* JWT tabanlı kimlik doğrulama
+* Fotoğraf yükleme desteği
+* Rota oluşturma ve görüntüleme
+* Profil yönetimi
+* Beğeni, kaydetme ve yorum işlemleri
+
+## Platform Uyumluluğu
+
+### Mobil
+
+* Android Emulator (10.0.2.2)
+* Fiziksel cihazlar (Local IP)
+
+### Web
+
+* Chrome
+* Edge
+* Chromium tabanlı tarayıcılar
+
+## Not
+
+Mobil ve web istemcileri aynı veritabanını kullandığından, bir platformda yapılan ekleme, silme, güncelleme ve etkileşim işlemleri diğer platformlarda da görüntülenebilir.

@@ -10,6 +10,24 @@ using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 const string MobileClientCorsPolicy = "MobileClient";
+var configuredCorsOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .GetChildren()
+    .Select(origin => origin.Value)
+    .Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Cast<string>()
+    .ToArray();
+var allowedCorsOrigins = builder.Environment.IsDevelopment() ||
+    builder.Environment.IsEnvironment("Local")
+        ? new[]
+        {
+            "http://localhost:3000",
+            "http://localhost:5000",
+            "http://localhost:5173",
+            "http://localhost:5229",
+            "http://localhost:5190"
+        }
+        : configuredCorsOrigins;
 
 // 1. Veritabanı Bağlantısı
 builder.Services.AddDbContext<RouteDbContext>(options =>
@@ -17,11 +35,12 @@ builder.Services.AddDbContext<RouteDbContext>(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHealthChecks();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(MobileClientCorsPolicy, policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(allowedCorsOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -89,7 +108,7 @@ using (var scope = app.Services.CreateScope())
 }
 // ----------------------------------------
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Local"))
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -100,6 +119,7 @@ app.UseCors(MobileClientCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHealthChecks("/health");
 app.MapControllers();
 
 app.Run();

@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TokenSnapshot {
   const TokenSnapshot({
@@ -33,24 +35,43 @@ class TokenStore {
     required String username,
     required DateTime expiresAt,
   }) async {
+    if (kIsWeb) {
+      final preferences = await SharedPreferences.getInstance();
+      await Future.wait([
+        preferences.setString(_tokenKey, token),
+        preferences.setString(_usernameKey, username),
+        preferences.setString(
+          _expiresAtKey,
+          expiresAt.toUtc().toIso8601String(),
+        ),
+      ]);
+      return;
+    }
+
     await Future.wait([
       _storage.write(key: _tokenKey, value: token),
       _storage.write(key: _usernameKey, value: username),
-      _storage.write(key: _expiresAtKey, value: expiresAt.toUtc().toIso8601String()),
+      _storage.write(
+        key: _expiresAtKey,
+        value: expiresAt.toUtc().toIso8601String(),
+      ),
     ]);
   }
 
   Future<TokenSnapshot?> read() async {
-    final values = await Future.wait([
-      _storage.read(key: _tokenKey),
-      _storage.read(key: _usernameKey),
-      _storage.read(key: _expiresAtKey),
-    ]);
+    final values = kIsWeb
+        ? await _readWebValues()
+        : await Future.wait([
+            _storage.read(key: _tokenKey),
+            _storage.read(key: _usernameKey),
+            _storage.read(key: _expiresAtKey),
+          ]);
 
     final token = values[0];
     final username = values[1];
     final expiresAtRaw = values[2];
-    final expiresAt = expiresAtRaw == null ? null : DateTime.tryParse(expiresAtRaw);
+    final expiresAt =
+        expiresAtRaw == null ? null : DateTime.tryParse(expiresAtRaw);
 
     if (token == null || username == null || expiresAt == null) {
       return null;
@@ -73,10 +94,29 @@ class TokenStore {
   }
 
   Future<void> clear() async {
+    if (kIsWeb) {
+      final preferences = await SharedPreferences.getInstance();
+      await Future.wait([
+        preferences.remove(_tokenKey),
+        preferences.remove(_usernameKey),
+        preferences.remove(_expiresAtKey),
+      ]);
+      return;
+    }
+
     await Future.wait([
       _storage.delete(key: _tokenKey),
       _storage.delete(key: _usernameKey),
       _storage.delete(key: _expiresAtKey),
     ]);
+  }
+
+  Future<List<String?>> _readWebValues() async {
+    final preferences = await SharedPreferences.getInstance();
+    return [
+      preferences.getString(_tokenKey),
+      preferences.getString(_usernameKey),
+      preferences.getString(_expiresAtKey),
+    ];
   }
 }

@@ -66,7 +66,8 @@ class RehberlyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<RouteFeedController>(
           create: (context) => RouteFeedController(
-            context.read<RouteRepository>(),
+            routeRepository: context.read<RouteRepository>(),
+            profileRepository: context.read<ProfileRepository>(),
           ),
         ),
         ChangeNotifierProvider<RehberlyProfileController>(

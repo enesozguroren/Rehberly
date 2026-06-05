@@ -63,7 +63,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       selected: {_mode},
                       onSelectionChanged: session.isBusy
                           ? null
-                          : (selection) => setState(() => _mode = selection.first),
+                          : (selection) =>
+                              setState(() => _mode = selection.first),
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
@@ -129,7 +130,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               dimension: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : Icon(isRegister ? Icons.person_add_alt_1 : Icons.login),
+                          : Icon(
+                              isRegister ? Icons.person_add_alt_1 : Icons.login,
+                            ),
                       label: Text(isRegister ? 'Hesap oluştur' : 'Giriş yap'),
                     ),
                   ],
@@ -219,10 +222,10 @@ class _ErrorBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.error.withOpacity(0.08),
+        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.error.withOpacity(0.24),
+          color: Theme.of(context).colorScheme.error.withValues(alpha: 0.24),
         ),
       ),
       child: Row(
